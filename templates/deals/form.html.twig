@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ is_edit ? 'Edytuj umowe' : 'Nowa umowa' }} - CRM{% endblock %}
+
+{% block body %}
+<div>
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">{{ is_edit ? 'Edytuj umowe' : 'Nowa umowa' }}</h2>
+    <div class="card max-w-2xl">
+        <form id="deal-form" class="space-y-4">
+            <div>
+                <label class="label">Tytul *</label>
+                <input name="title" value="{{ deal ? deal.title : '' }}" class="input" required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Klient *</label>
+                    <select name="client_id" class="input" required>
+                        <option value="">Wybierz klienta</option>
+                        {% for c in clients %}
+                            <option value="{{ c.id }}" {{ (preselected_client_id == c.id) ? 'selected' : '' }}>{{ c.companyName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label">Etap</label>
+                    <select name="stage" class="input">
+                        {% set stages = {lead: 'Lead', proposal: 'Propozycja', negotiation: 'Negocjacje', won: 'Wygrana', lost: 'Przegrana'} %}
+                        {% for val, label in stages %}
+                            <option value="{{ val }}" {{ (deal and deal.stage == val) ? 'selected' : (not deal and val == 'lead' ? 'selected' : '') }}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="label">Wartosc</label>
+                    <input name="value" type="number" step="0.01" value="{{ deal ? deal.value : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label">Waluta</label>
+                    <input name="currency" value="{{ deal ? deal.currency ?? 'PLN' : 'PLN' }}" class="input">
+                </div>
+                <div>
+                    <label class="label">Prawdopodobienstwo (%)</label>
+                    <input name="probability" type="number" min="0" max="100" value="{{ deal ? deal.probability : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label">Przewidywane zamkniecie</label>
+                    <input name="expected_close_date" type="date" value="{{ deal and deal.expectedCloseDate ? deal.expectedCloseDate|date('Y-m-d') : '' }}" class="input">
+                </div>
+            </div>
+            <div>
+                <label class="label">Opis</label>
+                <textarea name="description" class="input" rows="3">{{ deal ? deal.description : '' }}</textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ path('deal_list') }}" class="btn btn-secondary">Anuluj</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.getElementById('deal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = App.formData(e.target);
+    const isEdit = {{ is_edit ? 'true' : 'false' }};
+    const id = {{ deal ? deal.id : 'null' }};
+
+    try {
+        if (isEdit) {
+            await App.put('/api/deals/' + id, data);
+            App.success('Umowa zaktualizowana');
+        } else {
+            await App.post('/api/deals', data);
+            App.success('Umowa dodana');
+        }
+        window.location.href = '{{ path('deal_list') }}';
+    } catch (err) {
+        App.error(err.message || 'Blad zapisu');
+    }
+});
+</script>
+{% endblock %}

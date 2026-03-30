@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Email - CRM{% endblock %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Email</h2>
+        <div class="flex gap-2">
+            <button onclick="openAccountForm()" class="btn btn-secondary">Konto pocztowe</button>
+            <button onclick="openComposeForm()" class="btn btn-primary">Nowy email</button>
+        </div>
+    </div>
+
+    {% if accounts|length > 0 %}
+        <div class="mb-4 text-sm text-gray-500">
+            Konta: {{ accounts|map(a => a.emailAddress)|join(', ') }}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 card p-0">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-4"></th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Od</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temat</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% if messages|length == 0 %}
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">Brak wiadomosci</td></tr>
+                        {% else %}
+                            {% for msg in messages %}
+                                <tr class="cursor-pointer hover:bg-gray-50" onclick="showMessage({{ msg.id }})">
+                                    <td class="px-3 py-4">
+                                        <span class="w-2 h-2 rounded-full inline-block {{ msg.isRead ? 'bg-gray-300' : 'bg-blue-600' }}"></span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ msg.fromAddress }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ msg.subject }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ msg.receivedAt ? msg.receivedAt|date('d.m.Y H:i') : '' }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div id="message-preview">
+                <p class="text-sm text-gray-500">Wybierz wiadomosc</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Compose modal #}
+<div id="compose-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Nowy email</h3>
+        <form id="compose-form" class="space-y-4">
+            <div>
+                <label class="label">Konto nadawcy</label>
+                <select name="account_id" class="input">
+                    <option value="">Wybierz konto</option>
+                    {% for a in accounts %}
+                        <option value="{{ a.id }}">{{ a.emailAddress }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div><label class="label">Do *</label><input name="to" class="input" required></div>
+            <div><label class="label">Temat</label><input name="subject" class="input"></div>
+            <div><label class="label">Tresc</label><textarea name="body" class="input" rows="6"></textarea></div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeComposeForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Wyslij</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Account modal #}
+<div id="account-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-semibold mb-4">Dodaj konto pocztowe</h3>
+        <form id="account-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="label">Adres email *</label><input name="email_address" class="input" required></div>
+                <div><label class="label">Nazwa wyswietlana</label><input name="display_name" class="input"></div>
+                <div><label class="label">Serwer IMAP *</label><input name="imap_host" class="input" required></div>
+                <div><label class="label">Port IMAP</label><input name="imap_port" type="number" value="993" class="input"></div>
+                <div><label class="label">Serwer SMTP *</label><input name="smtp_host" class="input" required></div>
+                <div><label class="label">Port SMTP</label><input name="smtp_port" type="number" value="465" class="input"></div>
+                <div><label class="label">Login *</label><input name="username" class="input" required></div>
+                <div><label class="label">Haslo *</label><input name="password" type="password" class="input" required></div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeAccountForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+function openComposeForm() { document.getElementById('compose-modal').classList.remove('hidden'); }
+function closeComposeForm() { document.getElementById('compose-modal').classList.add('hidden'); document.getElementById('compose-form').reset(); }
+function openAccountForm() { document.getElementById('account-modal').classList.remove('hidden'); }
+function closeAccountForm() { document.getElementById('account-modal').classList.add('hidden'); document.getElementById('account-form').reset(); }
+
+async function showMessage(id) {
+    try {
+        const msg = await App.get('/api/emails/messages/' + id);
+        const preview = document.getElementById('message-preview');
+        preview.innerHTML = `
+            <h3 class="font-semibold text-lg mb-2">${msg.subject || 'Brak tematu'}</h3>
+            <p class="text-xs text-gray-500 mb-1">Od: ${msg.from_address || ''}</p>
+            <p class="text-xs text-gray-500 mb-4">Data: ${msg.received_at ? new Date(msg.received_at).toLocaleString('pl-PL') : ''}</p>
+            <div class="prose prose-sm max-w-none">${msg.body_html || msg.body_text || 'Brak tresci'}</div>
+        `;
+    } catch (err) {
+        App.error('Blad ladowania wiadomosci');
+    }
+}
+
+document.getElementById('compose-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        await App.post('/api/emails/send', App.formData(e.target));
+        App.success('Email wyslany');
+        closeComposeForm();
+    } catch (err) { App.error(err.message || 'Blad wysylania'); }
+});
+
+document.getElementById('account-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+        await App.post('/api/emails/accounts', App.formData(e.target));
+        App.success('Konto dodane');
+        window.location.reload();
+    } catch (err) { App.error(err.message || 'Blad dodawania konta'); }
+});
+</script>
+{% endblock %}

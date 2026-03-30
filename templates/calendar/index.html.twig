@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Kalendarz - CRM{% endblock %}
+
+{% block stylesheets %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Kalendarz</h2>
+        <button onclick="openMeetingForm()" class="btn btn-primary">Nowe spotkanie</button>
+    </div>
+    <div class="card">
+        <div id="calendar"></div>
+    </div>
+</div>
+
+{# Meeting form modal #}
+<div id="meeting-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Nowe spotkanie</h3>
+        <form id="meeting-form" class="space-y-4">
+            <div>
+                <label class="label">Tytul *</label>
+                <input name="title" class="input" required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Poczatek *</label>
+                    <input name="start_at" type="datetime-local" class="input" required>
+                </div>
+                <div>
+                    <label class="label">Koniec *</label>
+                    <input name="end_at" type="datetime-local" class="input" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Lokalizacja</label>
+                    <input name="location" class="input">
+                </div>
+                <div>
+                    <label class="label">Typ</label>
+                    <select name="type" class="input">
+                        <option value="in_person">Osobiste</option>
+                        <option value="phone">Telefoniczne</option>
+                        <option value="video">Video</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="label">Opis</label>
+                <textarea name="description" class="input" rows="2"></textarea>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeMeetingForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+<script>
+let calendar;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' },
+        locale: 'pl',
+        firstDay: 1,
+        height: 'auto',
+        events: async function(info, successCallback) {
+            try {
+                const data = await App.get(`/api/calendar/events?start=${info.startStr}&end=${info.endStr}`);
+                successCallback(data || []);
+            } catch { successCallback([]); }
+        },
+        dateClick: function(arg) {
+            document.querySelector('[name="start_at"]').value = arg.dateStr + 'T09:00';
+            document.querySelector('[name="end_at"]').value = arg.dateStr + 'T10:00';
+            openMeetingForm();
+        },
+    });
+    calendar.render();
+});
+
+function openMeetingForm() {
+    document.getElementById('meeting-modal').classList.remove('hidden');
+}
+function closeMeetingForm() {
+    document.getElementById('meeting-modal').classList.add('hidden');
+    document.getElementById('meeting-form').reset();
+}
+
+document.getElementById('meeting-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = App.formData(e.target);
+    try {
+        await App.post('/api/meetings', data);
+        App.success('Spotkanie dodane');
+        closeMeetingForm();
+        calendar.refetchEvents();
+    } catch (err) {
+        App.error(err.message || 'Blad');
+    }
+});
+</script>
+{% endblock %}

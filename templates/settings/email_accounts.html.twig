@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Konta e-mail - CRM{% endblock %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Konta e-mail</h2>
+        <button onclick="openAccountForm()" class="btn btn-primary">Dodaj konto</button>
+    </div>
+    <div class="card p-0">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adres e-mail</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nazwa</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IMAP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SMTP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if accounts|length == 0 %}
+                        <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Brak kont</td></tr>
+                    {% else %}
+                        {% for acc in accounts %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ acc.emailAddress }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ acc.displayName }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ acc.imapHost }}:{{ acc.imapPort }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ acc.smtpHost }}:{{ acc.smtpPort }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="{{ acc.isActive ? 'badge-green' : 'badge-red' }}">{{ acc.isActive ? 'Aktywne' : 'Nieaktywne' }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex gap-1">
+                                        <button onclick="editAccount({{ acc.id }}, '{{ acc.emailAddress }}', '{{ acc.displayName }}', '{{ acc.imapHost }}', {{ acc.imapPort }}, '{{ acc.smtpHost }}', {{ acc.smtpPort }}, '{{ acc.username }}')" class="btn btn-sm btn-secondary">Edytuj</button>
+                                        <button onclick="deleteAccount({{ acc.id }})" class="btn btn-sm btn-danger">Usun</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Account form modal #}
+<div id="ea-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 id="ea-modal-title" class="text-lg font-semibold mb-4">Nowe konto e-mail</h3>
+        <form id="ea-form" class="space-y-4">
+            <input type="hidden" name="_edit_id" id="ea-edit-id" value="">
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="label">Adres e-mail *</label><input name="email_address" type="email" class="input" required></div>
+                <div><label class="label">Nazwa wyswietlana</label><input name="display_name" class="input"></div>
+            </div>
+            <p class="text-sm font-medium text-gray-700">IMAP</p>
+            <div class="grid grid-cols-3 gap-4">
+                <div><label class="label">Host *</label><input name="imap_host" class="input" required></div>
+                <div><label class="label">Port</label><input name="imap_port" type="number" value="993" class="input"></div>
+                <div><label class="label">Szyfrowanie</label>
+                    <select name="imap_encryption" class="input"><option value="ssl">SSL</option><option value="tls">TLS</option><option value="none">Brak</option></select>
+                </div>
+            </div>
+            <p class="text-sm font-medium text-gray-700">SMTP</p>
+            <div class="grid grid-cols-3 gap-4">
+                <div><label class="label">Host *</label><input name="smtp_host" class="input" required></div>
+                <div><label class="label">Port</label><input name="smtp_port" type="number" value="465" class="input"></div>
+                <div><label class="label">Szyfrowanie</label>
+                    <select name="smtp_encryption" class="input"><option value="ssl">SSL</option><option value="tls">TLS</option><option value="none">Brak</option></select>
+                </div>
+            </div>
+            <hr>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="label">Login *</label><input name="username" class="input" required></div>
+                <div><label class="label">Haslo <span id="ea-pwd-hint">*</span></label><input name="password" type="password" class="input" id="ea-password"></div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeAccountForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+function openAccountForm() {
+    document.getElementById('ea-edit-id').value = '';
+    document.getElementById('ea-modal-title').textContent = 'Nowe konto e-mail';
+    document.getElementById('ea-pwd-hint').textContent = '*';
+    document.getElementById('ea-password').required = true;
+    document.getElementById('ea-form').reset();
+    document.getElementById('ea-modal').classList.remove('hidden');
+}
+
+function editAccount(id, email, displayName, imapHost, imapPort, smtpHost, smtpPort, username) {
+    document.getElementById('ea-edit-id').value = id;
+    document.getElementById('ea-modal-title').textContent = 'Edytuj konto';
+    document.getElementById('ea-pwd-hint').textContent = '(puste = bez zmian)';
+    document.getElementById('ea-password').required = false;
+    document.querySelector('[name="email_address"]').value = email;
+    document.querySelector('[name="display_name"]').value = displayName;
+    document.querySelector('[name="imap_host"]').value = imapHost;
+    document.querySelector('[name="imap_port"]').value = imapPort;
+    document.querySelector('[name="smtp_host"]').value = smtpHost;
+    document.querySelector('[name="smtp_port"]').value = smtpPort;
+    document.querySelector('[name="username"]').value = username;
+    document.getElementById('ea-modal').classList.remove('hidden');
+}
+
+function closeAccountForm() {
+    document.getElementById('ea-modal').classList.add('hidden');
+}
+
+async function deleteAccount(id) {
+    const ok = await App.confirm('Usun konto', 'Czy na pewno usunac konto?');
+    if (!ok) return;
+    try { await App.delete('/api/emails/accounts/' + id); App.success('Konto usuniete'); window.location.reload(); }
+    catch { App.error('Blad usuwania'); }
+}
+
+document.getElementById('ea-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = App.formData(e.target);
+    const editId = data._edit_id;
+    delete data._edit_id;
+    if (editId && !data.password) delete data.password;
+
+    try {
+        if (editId) {
+            await App.put('/api/emails/accounts/' + editId, data);
+            App.success('Konto zaktualizowane');
+        } else {
+            await App.post('/api/emails/accounts', data);
+            App.success('Konto dodane');
+        }
+        window.location.reload();
+    } catch (err) { App.error(err.message || 'Blad'); }
+});
+</script>
+{% endblock %}

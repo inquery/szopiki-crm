@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Szablony e-mail - CRM{% endblock %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Szablony e-mail</h2>
+        <button onclick="openTemplateForm()" class="btn btn-primary">Dodaj szablon</button>
+    </div>
+
+    <div class="card mb-6 p-4 bg-blue-50 border-blue-200">
+        <p class="text-sm text-blue-800">Dostepne zmienne w szablonach:
+            <code class="bg-blue-100 px-1 rounded">{% verbatim %}{{client_name}}{% endverbatim %}</code>,
+            <code class="bg-blue-100 px-1 rounded">{% verbatim %}{{contact_person}}{% endverbatim %}</code>,
+            <code class="bg-blue-100 px-1 rounded">{% verbatim %}{{email}}{% endverbatim %}</code>,
+            <code class="bg-blue-100 px-1 rounded">{% verbatim %}{{date}}{% endverbatim %}</code>,
+            <code class="bg-blue-100 px-1 rounded">{% verbatim %}{{user_name}}{% endverbatim %}</code>
+        </p>
+    </div>
+
+    <div class="card p-0">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nazwa</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temat</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Opis</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if templates|length == 0 %}
+                        <tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Brak szablonow</td></tr>
+                    {% else %}
+                        {% for tpl in templates %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ tpl.name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ tpl.subject }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900">{{ tpl.description[:60] }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="{{ tpl.isActive ? 'badge-green' : 'badge-gray' }}">{{ tpl.isActive ? 'Aktywny' : 'Nieaktywny' }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex gap-1">
+                                        <button onclick='editTemplate({{ tpl.id }}, {{ tpl|json_encode }})' class="btn btn-sm btn-secondary">Edytuj</button>
+                                        <button onclick="deleteTemplate({{ tpl.id }})" class="btn btn-sm btn-danger">Usun</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Template form modal #}
+<div id="tpl-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 id="tpl-modal-title" class="text-lg font-semibold mb-4">Nowy szablon</h3>
+        <form id="tpl-form" class="space-y-4">
+            <input type="hidden" name="_edit_id" id="tpl-edit-id" value="">
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="label">Nazwa szablonu *</label><input name="name" class="input" required placeholder="np. Powitanie nowego klienta"></div>
+                <div><label class="label">Temat e-mail *</label><input name="subject" class="input" required></div>
+            </div>
+            <div><label class="label">Opis (wewnetrzny)</label><input name="description" class="input" placeholder="Do czego sluzy ten szablon"></div>
+            <div>
+                <label class="label">Tresc HTML *</label>
+                <textarea name="body_html" class="input font-mono text-xs" rows="12" required></textarea>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="tpl-active" name="is_active" checked>
+                <label for="tpl-active" class="text-sm text-gray-700">Aktywny</label>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeTemplateForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+function openTemplateForm() {
+    document.getElementById('tpl-edit-id').value = '';
+    document.getElementById('tpl-modal-title').textContent = 'Nowy szablon';
+    document.getElementById('tpl-form').reset();
+    document.getElementById('tpl-active').checked = true;
+    document.getElementById('tpl-modal').classList.remove('hidden');
+}
+
+function editTemplate(id, tpl) {
+    document.getElementById('tpl-edit-id').value = id;
+    document.getElementById('tpl-modal-title').textContent = 'Edytuj szablon';
+    document.querySelector('[name="name"]').value = tpl.name || '';
+    document.querySelector('[name="subject"]').value = tpl.subject || '';
+    document.querySelector('[name="description"]').value = tpl.description || '';
+    document.querySelector('[name="body_html"]').value = tpl.bodyHtml || tpl.body_html || '';
+    document.getElementById('tpl-active').checked = tpl.isActive ?? tpl.is_active ?? true;
+    document.getElementById('tpl-modal').classList.remove('hidden');
+}
+
+function closeTemplateForm() {
+    document.getElementById('tpl-modal').classList.add('hidden');
+}
+
+async function deleteTemplate(id) {
+    const ok = await App.confirm('Usun szablon', 'Czy na pewno usunac szablon?');
+    if (!ok) return;
+    try { await App.delete('/api/emails/templates/' + id); App.success('Szablon usuniety'); window.location.reload(); }
+    catch { App.error('Blad usuwania'); }
+}
+
+document.getElementById('tpl-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = App.formData(e.target);
+    const editId = data._edit_id;
+    delete data._edit_id;
+    data.is_active = document.getElementById('tpl-active').checked;
+
+    try {
+        if (editId) {
+            await App.put('/api/emails/templates/' + editId, data);
+            App.success('Szablon zaktualizowany');
+        } else {
+            await App.post('/api/emails/templates', data);
+            App.success('Szablon dodany');
+        }
+        window.location.reload();
+    } catch (err) { App.error(err.message || 'Blad'); }
+});
+</script>
+{% endblock %}

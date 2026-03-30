@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Umowy - CRM{% endblock %}
+
+{% set stage_labels = {lead: 'Lead', proposal: 'Propozycja', negotiation: 'Negocjacje', won: 'Wygrana', lost: 'Przegrana'} %}
+{% set stage_colors = {lead: 'badge-blue', proposal: 'badge-yellow', negotiation: 'badge-gray', won: 'badge-green', lost: 'badge-red'} %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Umowy</h2>
+        <div class="flex gap-2">
+            <a href="{{ path('deal_pipeline') }}" class="btn btn-secondary">Pipeline</a>
+            <a href="{{ path('deal_new') }}" class="btn btn-primary">Nowa umowa</a>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <form method="get" action="{{ path('deal_list') }}" class="flex gap-2">
+            <input type="text" name="search" value="{{ search }}" placeholder="Szukaj umow..." class="input flex-1">
+            <button type="submit" class="btn btn-primary">Szukaj</button>
+        </form>
+    </div>
+
+    <div class="card p-0">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tytul</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Klient</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wartosc</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Etap</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zamkniecie</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if deals|length == 0 %}
+                        <tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Brak danych</td></tr>
+                    {% else %}
+                        {% for deal in deals %}
+                            <tr class="cursor-pointer hover:bg-gray-50" onclick="window.location='{{ path('deal_show', {id: deal.id}) }}'">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ deal.title }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ deal.client ? deal.client.companyName : '-' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ deal.value|number_format(0, ',', ' ') }} {{ deal.currency ?? 'PLN' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="{{ stage_colors[deal.stage] ?? 'badge-gray' }}">{{ stage_labels[deal.stage] ?? deal.stage }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ deal.expectedCloseDate ? deal.expectedCloseDate|date('d.m.Y') : '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

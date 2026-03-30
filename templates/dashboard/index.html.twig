@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard - CRM{% endblock %}
+
+{% block body %}
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <a href="{{ path('client_list', {status: 'prospect'}) }}" class="card hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+            <div class="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center mr-4 shrink-0">
+                <span class="text-white text-lg font-bold">{{ prospects_count }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Prospekci</p>
+                <p class="text-xl font-semibold text-gray-900">{{ prospects_count }}</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('client_list', {status: 'demo'}) }}" class="card hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+            <div class="w-12 h-12 rounded-lg bg-yellow-500 flex items-center justify-center mr-4 shrink-0">
+                <span class="text-white text-lg font-bold">{{ demos_count }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Demo</p>
+                <p class="text-xl font-semibold text-gray-900">{{ demos_count }}</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('client_list', {status: 'active'}) }}" class="card hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+            <div class="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center mr-4 shrink-0">
+                <span class="text-white text-lg font-bold">{{ active_count }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Klienci</p>
+                <p class="text-xl font-semibold text-gray-900">{{ active_count }}</p>
+            </div>
+        </div>
+    </a>
+
+    <a href="{{ path('deal_list') }}" class="card hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+            <div class="w-12 h-12 rounded-lg bg-purple-500 flex items-center justify-center mr-4 shrink-0">
+                <span class="text-white text-lg font-bold">#</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500">Wartosc umow</p>
+                <p class="text-xl font-semibold text-gray-900">{{ deals_value|number_format(0, ',', ' ') }} PLN</p>
+            </div>
+        </div>
+    </a>
+</div>
+
+<div class="card">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Nadchodzace spotkania</h3>
+    {% if upcoming_meetings|length > 0 %}
+        <div class="space-y-3">
+            {% for meeting in upcoming_meetings %}
+                <div class="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ meeting.title }}</p>
+                        <p class="text-xs text-gray-500">{{ meeting.client ? meeting.client.companyName : '' }}</p>
+                    </div>
+                    <span class="text-xs text-gray-500">
+                        {{ meeting.startAt|date('d.m.Y H:i') }}
+                    </span>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-sm text-gray-500">Brak nadchodzacych spotkan</p>
+    {% endif %}
+</div>
+{% endblock %}

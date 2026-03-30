@@ -1,0 +1,19 @@
+{#
+    Pagination component
+    Variables: page, limit, total, pages, route, route_params (optional)
+#}
+{% if pages is defined and pages > 1 %}
+<div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+    <div class="text-sm text-gray-700">
+        Wyniki <span class="font-medium">{{ ((page - 1) * limit) + 1 }}</span> - <span class="font-medium">{{ min(page * limit, total) }}</span> z <span class="font-medium">{{ total }}</span>
+    </div>
+    <nav class="flex space-x-1">
+        {% for p in 1..pages %}
+            <a href="{{ path(route, (route_params|default({}))|merge({page: p})) }}"
+               class="px-3 py-1 text-sm rounded {{ p == page ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border' }}">
+                {{ p }}
+            </a>
+        {% endfor %}
+    </nav>
+</div>
+{% endif %}

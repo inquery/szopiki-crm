@@ -242,21 +242,5 @@
             "config/packages/web_profiler.yaml",
             "config/routes/web_profiler.yaml"
         ]
-    },
-    "symfony/webpack-encore-bundle": {
-        "version": "2.4",
-        "recipe": {
-            "repo": "github.com/symfony/recipes",
-            "branch": "main",
-            "version": "2.1",
-            "ref": "d38b271482707f5209f7bb03884feb88e3bb4f45"
-        },
-        "files": [
-            "assets/app.js",
-            "assets/styles/app.css",
-            "config/packages/webpack_encore.yaml",
-            "package.json",
-            "webpack.config.js"
-        ]
     }
 }

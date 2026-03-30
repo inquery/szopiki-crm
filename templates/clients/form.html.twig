@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ is_edit ? 'Edytuj klienta' : 'Nowy klient' }} - CRM{% endblock %}
+
+{% set status_options = [
+    {value: 'prospect', label: 'Prospekt'},
+    {value: 'demo', label: 'Demo'},
+    {value: 'implementing', label: 'Wdrozenie'},
+    {value: 'active', label: 'Aktywny'},
+    {value: 'resigned', label: 'Rezygnacja'}
+] %}
+
+{% block body %}
+<div>
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">
+        {{ is_edit ? 'Edytuj klienta' : 'Nowy klient' }}
+    </h2>
+    <div class="card max-w-2xl">
+        <form id="client-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="label" for="company_name">Firma *</label>
+                    <input id="company_name" name="company_name" value="{{ client ? client.companyName : '' }}" class="input" required>
+                </div>
+                <div>
+                    <label class="label" for="tax_id">NIP</label>
+                    <input id="tax_id" name="tax_id" value="{{ client ? client.taxId : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="contact_person">Osoba kontaktowa</label>
+                    <input id="contact_person" name="contact_person" value="{{ client ? client.contactPerson : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="email">Email</label>
+                    <input id="email" name="email" type="email" value="{{ client ? client.email : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="phone">Telefon</label>
+                    <input id="phone" name="phone" value="{{ client ? client.phone : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="city">Miasto</label>
+                    <input id="city" name="city" value="{{ client ? client.city : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="postal_code">Kod pocztowy</label>
+                    <input id="postal_code" name="postal_code" value="{{ client ? client.postalCode : '' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="country">Kraj</label>
+                    <input id="country" name="country" value="{{ client ? client.country : 'Polska' }}" class="input">
+                </div>
+                <div>
+                    <label class="label" for="source">Zrodlo pozyskania</label>
+                    <input id="source" name="source" value="{{ client ? client.source : '' }}" class="input" placeholder="np. polecenie, strona www...">
+                </div>
+                <div>
+                    <label class="label" for="status">Status</label>
+                    <select id="status" name="status" class="input">
+                        {% for opt in status_options %}
+                            <option value="{{ opt.value }}" {{ (client and client.status == opt.value) ? 'selected' : (not client and opt.value == 'prospect' ? 'selected' : '') }}>
+                                {{ opt.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="label" for="address">Adres</label>
+                <textarea id="address" name="address" class="input" rows="2">{{ client ? client.address : '' }}</textarea>
+            </div>
+            <div>
+                <label class="label" for="notes">Notatki</label>
+                <textarea id="notes" name="notes" class="input" rows="3" placeholder="Dodatkowe informacje o kliencie...">{{ client ? client.notes : '' }}</textarea>
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ path('client_list') }}" class="btn btn-secondary">Anuluj</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.getElementById('client-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = App.formData(form);
+    const isEdit = {{ is_edit ? 'true' : 'false' }};
+    const id = {{ client ? client.id : 'null' }};
+
+    try {
+        if (isEdit) {
+            await App.put('/api/clients/' + id, data);
+            App.success('Klient zaktualizowany');
+        } else {
+            await App.post('/api/clients', data);
+            App.success('Klient dodany');
+        }
+        window.location.href = '{{ path('client_list') }}';
+    } catch (err) {
+        App.error(err.message || 'Blad zapisu');
+    }
+});
+</script>
+{% endblock %}

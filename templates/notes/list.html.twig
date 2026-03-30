@@ -1,0 +1,111 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notatki - CRM{% endblock %}
+
+{% set type_labels = {general: 'Ogolna', meeting: 'Spotkanie', call: 'Rozmowa', email: 'Email'} %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Notatki</h2>
+        <button onclick="openNoteForm()" class="btn btn-primary">Dodaj notatke</button>
+    </div>
+
+    <div class="card p-0">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tytul</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tresc</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Klient</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if notes|length == 0 %}
+                        <tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Brak danych</td></tr>
+                    {% else %}
+                        {% for note in notes %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ note.title ?: 'Bez tytulu' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ type_labels[note.type] ?? note.type }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{{ note.content[:80] }}{{ note.content|length > 80 ? '...' : '' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ note.client ? note.client.companyName : '-' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ note.createdAt ? note.createdAt|date('d.m.Y') : '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Note form modal #}
+<div id="note-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Nowa notatka</h3>
+        <form id="note-form" class="space-y-4">
+            <div>
+                <label class="label">Tytul</label>
+                <input name="title" class="input">
+            </div>
+            <div>
+                <label class="label">Tresc *</label>
+                <textarea name="content" class="input" rows="4" required></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="label">Typ</label>
+                    <select name="type" class="input">
+                        <option value="general">Ogolna</option>
+                        <option value="meeting">Spotkanie</option>
+                        <option value="call">Rozmowa</option>
+                        <option value="email">Email</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="label">Klient</label>
+                    <select name="client_id" class="input">
+                        <option value="">-- brak --</option>
+                        {% for c in clients %}
+                            <option value="{{ c.id }}">{{ c.companyName }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeNoteForm()" class="btn btn-secondary">Anuluj</button>
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+function openNoteForm() {
+    document.getElementById('note-modal').classList.remove('hidden');
+}
+function closeNoteForm() {
+    document.getElementById('note-modal').classList.add('hidden');
+    document.getElementById('note-form').reset();
+}
+
+document.getElementById('note-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = App.formData(e.target);
+    if (!data.client_id) delete data.client_id;
+    try {
+        await App.post('/api/notes', data);
+        App.success('Notatka dodana');
+        window.location.reload();
+    } catch (err) {
+        App.error(err.message || 'Blad');
+    }
+});
+</script>
+{% endblock %}

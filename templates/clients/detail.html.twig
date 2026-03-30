@@ -1,0 +1,157 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ client.companyName }} - CRM{% endblock %}
+
+{% set status_labels = {
+    'prospect': 'Prospekt',
+    'demo': 'Demo',
+    'implementing': 'Wdrozenie',
+    'active': 'Aktywny',
+    'resigned': 'Rezygnacja',
+    'deleted': 'Usuniety'
+} %}
+
+{% set status_colors = {
+    'prospect': 'badge-blue',
+    'demo': 'badge-yellow',
+    'implementing': 'bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full text-xs font-medium',
+    'active': 'badge-green',
+    'resigned': 'badge-red',
+    'deleted': 'badge-gray'
+} %}
+
+{% set transitions = {
+    'prospect': ['demo', 'resigned'],
+    'demo': ['implementing', 'active', 'resigned'],
+    'implementing': ['active', 'resigned'],
+    'active': ['resigned'],
+    'resigned': ['prospect']
+} %}
+
+{% block body %}
+<div>
+    {# Header #}
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <h2 class="text-2xl font-bold text-gray-900">{{ client.companyName }}</h2>
+            <span class="{{ status_colors[client.status] ?? 'badge-gray' }}">
+                {{ status_labels[client.status] ?? client.status }}
+            </span>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ path('client_edit', {id: client.id}) }}" class="btn btn-secondary">Edytuj</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {# Client data #}
+        <div class="space-y-6">
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-4">Dane klienta</h3>
+                <dl class="space-y-2 text-sm">
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">NIP:</dt><dd class="text-gray-900">{{ client.taxId ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Kontakt:</dt><dd class="text-gray-900">{{ client.contactPerson ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Email:</dt><dd class="text-gray-900">{{ client.email ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Telefon:</dt><dd class="text-gray-900">{{ client.phone ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Adres:</dt><dd class="text-gray-900">{{ client.address ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Miasto:</dt><dd class="text-gray-900">{{ [client.city, client.postalCode]|filter(v => v)|join(' ') ?: '-' }}</dd></div>
+                    <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Kraj:</dt><dd class="text-gray-900">{{ client.country ?: '-' }}</dd></div>
+                    {% if client.source %}
+                        <div class="flex"><dt class="w-36 text-gray-500 shrink-0">Zrodlo:</dt><dd class="text-gray-900">{{ client.source }}</dd></div>
+                    {% endif %}
+                </dl>
+                {% if client.notes %}
+                    <div class="mt-4 p-3 bg-gray-50 rounded text-sm text-gray-700 whitespace-pre-wrap">{{ client.notes }}</div>
+                {% endif %}
+            </div>
+
+            {# Status management #}
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-2">Status</h3>
+                <p class="text-sm text-gray-500 mb-3">Aktualny: <span class="{{ status_colors[client.status] ?? 'badge-gray' }} ml-1">{{ status_labels[client.status] }}</span></p>
+                {% if client.status == 'resigned' and client.deletionDate %}
+                    <p class="text-sm text-red-600 mb-3">Automatyczne usuniecie: {{ client.deletionDate|date('d.m.Y') }}</p>
+                {% endif %}
+                {% set allowed = transitions[client.status] ?? [] %}
+                {% if allowed|length > 0 %}
+                    <p class="text-xs text-gray-400 mb-2">Przejdz do:</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for statusKey in allowed %}
+                            <button onclick="changeStatus('{{ statusKey }}')" class="btn btn-sm btn-secondary">
+                                {{ status_labels[statusKey] }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-gray-400">Brak dostepnych przejsc</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Deals + Notes #}
+        <div class="space-y-6">
+            <div class="card">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold">Umowy ({{ deals|length }})</h3>
+                    <a href="{{ path('deal_new') }}?client_id={{ client.id }}" class="btn btn-sm btn-primary">Dodaj</a>
+                </div>
+                {% if deals|length > 0 %}
+                    {% for deal in deals %}
+                        <a href="{{ path('deal_show', {id: deal.id}) }}" class="block py-2 border-b last:border-0 hover:bg-gray-50 transition-colors">
+                            <p class="text-sm font-medium text-gray-900">{{ deal.title }}</p>
+                            <p class="text-xs text-gray-500">{{ deal.value|number_format(0, ',', ' ') }} {{ deal.currency ?? 'PLN' }} &mdash; {{ deal.stage }}</p>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm text-gray-500">Brak umow</p>
+                {% endif %}
+            </div>
+
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-3">Notatki ({{ notes|length }})</h3>
+                {% if notes|length > 0 %}
+                    {% for note in notes %}
+                        <div class="py-2 border-b last:border-0">
+                            <p class="text-sm font-medium text-gray-900">{{ note.title ?: 'Bez tytulu' }}</p>
+                            <p class="text-xs text-gray-500 truncate">{{ note.content }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm text-gray-500">Brak notatek</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Meetings #}
+        <div class="space-y-6">
+            <div class="card">
+                <h3 class="text-lg font-semibold mb-3">Spotkania ({{ meetings|length }})</h3>
+                {% if meetings|length > 0 %}
+                    {% for meeting in meetings %}
+                        <div class="py-2 border-b last:border-0">
+                            <p class="text-sm font-medium text-gray-900">{{ meeting.title }}</p>
+                            <p class="text-xs text-gray-500">{{ meeting.startAt|date('d.m.Y H:i') }}</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-sm text-gray-500">Brak spotkan</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+async function changeStatus(newStatus) {
+    try {
+        await App.patch('/api/clients/{{ client.id }}/status', { status: newStatus });
+        App.success('Status zmieniony');
+        window.location.reload();
+    } catch (err) {
+        App.error(err.message || 'Blad zmiany statusu');
+    }
+}
+</script>
+{% endblock %}

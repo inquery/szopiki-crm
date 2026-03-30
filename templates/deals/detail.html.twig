@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ deal.title }} - CRM{% endblock %}
+
+{% set stage_labels = {lead: 'Lead', proposal: 'Propozycja', negotiation: 'Negocjacje', won: 'Wygrana', lost: 'Przegrana'} %}
+
+{% block body %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">{{ deal.title }}</h2>
+        <div class="flex gap-2">
+            <a href="{{ path('deal_edit', {id: deal.id}) }}" class="btn btn-secondary">Edytuj</a>
+            <button onclick="deleteDeal()" class="btn btn-danger">Usun</button>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card">
+            <h3 class="text-lg font-semibold mb-4">Szczegoly umowy</h3>
+            <dl class="space-y-2 text-sm">
+                <div class="flex"><dt class="w-40 text-gray-500">Klient:</dt><dd>{{ deal.client ? deal.client.companyName : '-' }}</dd></div>
+                <div class="flex"><dt class="w-40 text-gray-500">Wartosc:</dt><dd>{{ deal.value|number_format(0, ',', ' ') }} {{ deal.currency ?? 'PLN' }}</dd></div>
+                <div class="flex"><dt class="w-40 text-gray-500">Etap:</dt><dd>{{ stage_labels[deal.stage] ?? deal.stage }}</dd></div>
+                <div class="flex"><dt class="w-40 text-gray-500">Prawdop.:</dt><dd>{{ deal.probability is not null ? deal.probability ~ '%' : '-' }}</dd></div>
+                <div class="flex"><dt class="w-40 text-gray-500">Zamkniecie:</dt><dd>{{ deal.expectedCloseDate ? deal.expectedCloseDate|date('d.m.Y') : '-' }}</dd></div>
+            </dl>
+            {% if deal.description %}
+                <p class="mt-4 text-sm text-gray-600 bg-gray-50 p-3 rounded">{{ deal.description }}</p>
+            {% endif %}
+        </div>
+        <div class="card">
+            <h3 class="text-lg font-semibold mb-4">Zmien etap</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for key, label in stage_labels %}
+                    <button onclick="changeStage('{{ key }}')"
+                            class="btn btn-sm {{ deal.stage == key ? 'btn-primary' : 'btn-secondary' }}">{{ label }}</button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+async function changeStage(stage) {
+    try {
+        await App.patch('/api/deals/{{ deal.id }}/stage', { stage });
+        App.success('Etap zmieniony');
+        window.location.reload();
+    } catch (err) {
+        App.error(err.message || 'Blad zmiany etapu');
+    }
+}
+
+async function deleteDeal() {
+    const ok = await App.confirm('Usun umowe', 'Czy na pewno chcesz usunac te umowe?');
+    if (!ok) return;
+    try {
+        await App.delete('/api/deals/{{ deal.id }}');
+        App.success('Umowa usunieta');
+        window.location.href = '{{ path('deal_list') }}';
+    } catch (err) {
+        App.error(err.message || 'Blad usuwania');
+    }
+}
+</script>
+{% endblock %}
